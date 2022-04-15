@@ -1,17 +1,19 @@
 import arcpy
 import csv
 import pandas
+import os
 import glob
 
-points = r"C:\Users\johnt801\PycharmProjects\CC9\RI_Forest_Health_Works_Project%3A_Points_All_Invasives.shp"
 arcpy.env.workspace = r'C:\Users\johnt801\PycharmProjects\CC9'
+#points = r"C:\Users\johnt801\PycharmProjects\CC9\RI_Forest_Health_Works_Project%3A_Points_All_Invasives.shp"
+points = os.path.join(arcpy.env.workspace,'RI_Forest_Health_Works_Project%3A_Points_All_Invasives.shp')
+print(points)
+swag = input()
 arcpy.env.overwriteOutput = True
 
 descPoints = arcpy.Describe(points)
 spRef = descPoints.spatialReference
 fieldNames = []
-uniqueSpecies = []
-
 for field in descPoints.fields:
      fieldNames.append(field.name)
 
@@ -19,14 +21,13 @@ print(fieldNames)
 
 overallCount = 0
 photoCount = 0
-photoIndices = []
+
+photoIndices=[]
 photoCoords = []
 nonphotoIndices=[]
 nonphotoCoords = []
-
 fields = ['OBJECTID','photo','SHAPE@X','SHAPE@Y']
 
-print("Filtering photo/non photo data points...")
 with arcpy.da.SearchCursor(points,fields) as curs:
     for i in curs:
         overallCount += 1
@@ -39,21 +40,7 @@ with arcpy.da.SearchCursor(points,fields) as curs:
             nonphotoIndices.append(i[0])
             nonphotoCoords.append([i[2], i[3]])
 
-#getting count of unique species
-with arcpy.da.SearchCursor(points,'Species') as species:
-    for i in species:
-        if i not in uniqueSpecies:
-            uniqueSpecies.append(i)
 
-print("Data summary:\n")
-print("Overall count: " + str(overallCount))
-print("Points with photos: " + str(photoCount))
-print("Points without photos: " + str(overallCount - photoCount))
-
-#subtract 3 for blank values, unknown values, and 'other' values
-print("Unique species: " + str(len(uniqueSpecies) - 3) + '\n')
-
-print('Creating CSVs...\n')
 with open("Photo_Data.csv",'w+',newline='') as csvOK:
     csvRiter = csv.writer(csvOK)
     csvRiter.writerow(fieldNames)
@@ -99,7 +86,7 @@ for i in range(len(nonphotoCoords)):
 # writing into the file
 df2.to_csv("NonPhoto_Data.csv", index=False)
 
-print("Making layers from photo points / non photo points...\n")
+
 inTable = r'C:\Users\johnt801\PycharmProjects\CC9\Photo_Data.csv'
 x_coords = 'X'
 y_coords = 'Y'
@@ -121,7 +108,6 @@ z_coords = ''
 lyr = arcpy.MakeXYEventLayer_management(inTable,x_coords,y_coords,out_Layer,spRef,z_coords)
 arcpy.CopyFeatures_management(lyr,saved_Layer)
 
-print("Layer creation done! Shapefiles located at: " + str(arcpy.env.workspace))
-
-
-
+print(photoIndices)
+print("Overall count: " + str(overallCount))
+print("Points with photos: " + str(photoCount))
